@@ -61,7 +61,7 @@ notificationStatusView ( context, currentUser, status, { type_, accounts } ) =
     div [ class <| "notification " ++ type_ ]
         [ case type_ of
             "reblog" ->
-                notificationHeading accounts "boosted your toot" "fire"
+                notificationHeading accounts "boosted your toot" "retweet"
 
             "favourite" ->
                 notificationHeading accounts "favourited your toot" "star"
@@ -124,7 +124,7 @@ notificationFilterView filter =
         Common.justifiedButtonGroup "notification-filters"
             [ filterBtn "All notifications" "asterisk" NotificationAll
             , filterBtn "Mentions" "share-alt" NotificationOnlyMentions
-            , filterBtn "Boosts" "fire" NotificationOnlyBoosts
+            , filterBtn "Boosts" "retweet" NotificationOnlyBoosts
             , filterBtn "Favorites" "star" NotificationOnlyFavourites
             , filterBtn "Follows" "user" NotificationOnlyFollows
             ]

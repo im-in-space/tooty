@@ -134,7 +134,7 @@ statusActionsView status currentUser =
                     [ class reblogClasses
                     , onClickWithPreventAndStop reblogEvent
                     ]
-                    [ Common.icon "fire", text (toString sourceStatus.reblogs_count) ]
+                    [ Common.icon "retweet", text (toString sourceStatus.reblogs_count) ]
             , a
                 [ class favClasses
                 , onClickWithPreventAndStop favEvent
@@ -221,7 +221,7 @@ statusView context ({ account, content, media_attachments, reblog, mentions } as
             Just (Reblog reblog) ->
                 div [ class "reblog" ]
                     [ p [ class "status-info" ]
-                        [ Common.icon "fire"
+                        [ Common.icon "retweet"
                         , a (accountLinkAttributes ++ [ class "reblogger" ])
                             [ text <| " @" ++ account.username ]
                         , text " boosted"
