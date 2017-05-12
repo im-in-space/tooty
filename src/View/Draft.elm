@@ -22,10 +22,10 @@ type alias CurrentUser =
 
 visibilities : List ( String, String, String, String )
 visibilities =
-    [ ( "direct", "Mentioned", "Visible to mentioned users only", "envelope" )
-    , ( "private", "Followers", "Visible to followers only", "lock" )
-    , ( "unlisted", "Unlisted", "Do not show in public timelines", "eye-close" )
-    , ( "public", "Public", "Visible in public timelines", "globe" )
+    [ ( "direct", "", "Visible to mentioned users only", "envelope" )
+    , ( "private", "", "Visible to followers only", "lock" )
+    , ( "unlisted", "", "Do not show in public timelines", "eye-close" )
+    , ( "public", "", "Visible in public timelines", "globe" )
     ]
 
 
@@ -79,14 +79,13 @@ currentUserView currentUser =
                 [ Common.accountAvatarLink False currentUser
                 , div [ class "username" ]
                     [ Common.accountLink False currentUser
-                    , span []
+                    , p []
                         [ text " ("
                         , a [ href "", onClickWithPreventAndStop <| OpenAccountSelector ]
                             [ text "switch account" ]
                         , text ")"
                         ]
                     ]
-                , p [ class "status-text" ] <| formatContent currentUser.note []
                 ]
 
         Nothing ->

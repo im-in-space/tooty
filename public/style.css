@@ -44,23 +44,19 @@ body {
   margin-bottom: 0;
   max-height: calc(100vh - 10px);
   min-height: calc(100vh - 10px);
-}
-
-.column .panel.draft, .column .panel.options {
-  min-height: 0;
-  overflow: scroll;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .column .panel.draft {
-  max-height: calc(100vh - 110px) !important;
-  min-height: calc(100vh - 110px) !important;
-  overflow: scroll;
+  max-height: calc(100vh - 125px) !important;
+  min-height: calc(100vh - 125px) !important;
   padding-left: 5px;
 }
 
 .column .panel.options {
-    max-height: 100px !important;
-    min-height: 100px !important;
+    max-height: 115px !important;
+    min-height: 115px !important;
 }
 
 .column .panel.options .panel-body {
@@ -70,7 +66,7 @@ body {
 .timeline {
   overflow-y: auto;
   overflow-x: hidden;
-  max-height: calc(100vh - 65px);
+  max-height: calc(100vh - 55px);
   overflow: hidden;
   overflow-y: scroll;
 }
@@ -80,7 +76,7 @@ li.load-more {
 }
 
 .notifications-panel .timeline {
-  max-height: calc(100vh - 100px);
+  max-height: calc(100vh - 90px);
 }
 
 .panel a {
@@ -425,10 +421,6 @@ li.load-more {
 .btn-vis {
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.btn-vis > span {
-  margin-left: 6px;
 }
 
 .draft-attachments-field {
