@@ -56,7 +56,7 @@ notificationToAggregate notification =
         notification.id
         notification.type_
         notification.status
-        [ notification.account ]
+        [ { account = notification.account, created_at = notification.created_at } ]
         notification.created_at
 
 
@@ -68,7 +68,13 @@ addNotificationToAggregates notification aggregates =
             case ( aggregate.status, notification.status ) of
                 ( Just aggregateStatus, Just notificationStatus ) ->
                     if aggregateStatus.id == notificationStatus.id then
-                        { aggregate | accounts = notification.account :: aggregate.accounts }
+                        { aggregate
+                            | accounts =
+                                { account = notification.account
+                                , created_at = notification.created_at
+                                }
+                                    :: aggregate.accounts
+                        }
                     else
                         aggregate
 
@@ -91,7 +97,13 @@ addNotificationToAggregates notification aggregates =
                                Add the new following account.
                             -}
                             ( "follow", "follow" ) ->
-                                { aggregate | accounts = notification.account :: aggregate.accounts }
+                                { aggregate
+                                    | accounts =
+                                        { account = notification.account
+                                        , created_at = notification.created_at
+                                        }
+                                            :: aggregate.accounts
+                                }
 
                             {-
                                Notification is of type follow, but current aggregate
@@ -113,7 +125,7 @@ addNotificationToAggregates notification aggregates =
     in
         {-
            If we did no modification to the old aggregates it's
-           because we didn't found any match. So me have to create
+           because we didn't found any match. So we have to create
            a new aggregate
         -}
         if newAggregates == aggregates then
@@ -139,7 +151,9 @@ aggregateNotifications notifications =
         extractAggregate statusGroup =
             let
                 accounts =
-                    statusGroup |> List.map .account |> uniqueBy .id
+                    statusGroup
+                        |> List.map (\s -> { account = s.account, created_at = s.created_at })
+                        |> uniqueBy (.account >> .id)
             in
                 case statusGroup of
                     notification :: _ ->

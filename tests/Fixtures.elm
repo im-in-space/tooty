@@ -75,9 +75,35 @@ accountPloum =
     }
 
 
+statusNico : Status
+statusNico =
+    { account = accountNico
+    , application = Nothing
+    , content = "<p>hello</p>"
+    , created_at = "2017-04-24T20:12:20.922Z"
+    , favourited = Nothing
+    , favourites_count = 0
+    , id = 737931
+    , in_reply_to_account_id = Nothing
+    , in_reply_to_id = Nothing
+    , media_attachments = []
+    , mentions = []
+    , reblog = Nothing
+    , reblogged = Nothing
+    , reblogs_count = 0
+    , sensitive = Just False
+    , spoiler_text = ""
+    , tags = []
+    , uri = "tag:mamot.fr,2017-04-24:objectId=737932:objectType=Status"
+    , url = Just "https://mamot.fr/@n1k0/737931"
+    , visibility = "public"
+    }
+
+
 statusNicoToVjousse : Status
 statusNicoToVjousse =
     { account = accountNico
+    , application = Nothing
     , content = "<p>@vjousse coucou</p>"
     , created_at = "2017-04-24T20:16:20.922Z"
     , favourited = Nothing
@@ -100,7 +126,7 @@ statusNicoToVjousse =
     , spoiler_text = ""
     , tags = []
     , uri = "tag:mamot.fr,2017-04-24:objectId=737932:objectType=Status"
-    , url = "https://mamot.fr/@n1k0/737932"
+    , url = Just "https://mamot.fr/@n1k0/737932"
     , visibility = "public"
     }
 
@@ -108,6 +134,7 @@ statusNicoToVjousse =
 statusNicoToVjousseAgain : Status
 statusNicoToVjousseAgain =
     { account = accountNico
+    , application = Nothing
     , content = "<p>@vjousse recoucou</p>"
     , created_at = "2017-04-25T07:41:23.492Z"
     , favourited = Nothing
@@ -130,7 +157,7 @@ statusNicoToVjousseAgain =
     , spoiler_text = ""
     , tags = []
     , uri = "tag:mamot.fr,2017-04-25:objectId=752169:objectType=Status"
-    , url = "https://mamot.fr/@n1k0/752169"
+    , url = Just "https://mamot.fr/@n1k0/752169"
     , visibility = "public"
     }
 
@@ -138,6 +165,7 @@ statusNicoToVjousseAgain =
 statusPloumToVjousse : Status
 statusPloumToVjousse =
     { account = accountPloum
+    , application = Nothing
     , content = "<p>hey @vjousse</p>"
     , created_at = "2017-04-25T07:41:23.492Z"
     , favourited = Nothing
@@ -160,7 +188,7 @@ statusPloumToVjousse =
     , spoiler_text = ""
     , tags = []
     , uri = "tag:mamot.fr,2017-04-25:objectId=752169:objectType=Status"
-    , url = "https://mamot.fr/@n1k0/752169"
+    , url = Just "https://mamot.fr/@n1k0/752169"
     , visibility = "public"
     }
 
@@ -168,6 +196,7 @@ statusPloumToVjousse =
 statusReblogged : Status
 statusReblogged =
     { account = accountVjousse
+    , application = Nothing
     , content = "<p>fake post</p>"
     , created_at = "2017-04-24T20:16:20.922Z"
     , favourited = Nothing
@@ -184,7 +213,7 @@ statusReblogged =
     , spoiler_text = ""
     , tags = []
     , uri = "tag:mamot.fr,2017-04-24:objectId=737932:objectType=Status"
-    , url = "https://mamot.fr/@n1k0/737932"
+    , url = Just "https://mamot.fr/@n1k0/737932"
     , visibility = "public"
     }
 

@@ -12,6 +12,7 @@ module Mastodon.Decoder
         , tagDecoder
         , reblogDecoder
         , relationshipDecoder
+        , searchResultsDecoder
         , statusDecoder
         , webSocketPayloadDecoder
         , webSocketEventDecoder
@@ -57,6 +58,13 @@ accountDecoder =
         |> Pipe.required "statuses_count" Decode.int
         |> Pipe.required "url" Decode.string
         |> Pipe.required "username" Decode.string
+
+
+applicationDecoder : Decode.Decoder Application
+applicationDecoder =
+    Pipe.decode Application
+        |> Pipe.required "name" Decode.string
+        |> Pipe.required "website" (Decode.nullable Decode.string)
 
 
 attachmentDecoder : Decode.Decoder Attachment
@@ -124,10 +132,19 @@ reblogDecoder =
     Decode.map Reblog (Decode.lazy (\_ -> statusDecoder))
 
 
+searchResultsDecoder : Decode.Decoder SearchResults
+searchResultsDecoder =
+    Pipe.decode SearchResults
+        |> Pipe.required "accounts" (Decode.list accountDecoder)
+        |> Pipe.required "statuses" (Decode.list statusDecoder)
+        |> Pipe.required "hashtags" (Decode.list Decode.string)
+
+
 statusDecoder : Decode.Decoder Status
 statusDecoder =
     Pipe.decode Status
         |> Pipe.required "account" accountDecoder
+        |> Pipe.required "application" (Decode.nullable applicationDecoder)
         |> Pipe.required "content" Decode.string
         |> Pipe.required "created_at" Decode.string
         |> Pipe.optional "favourited" (Decode.nullable Decode.bool) Nothing
@@ -144,7 +161,7 @@ statusDecoder =
         |> Pipe.required "spoiler_text" Decode.string
         |> Pipe.required "tags" (Decode.list tagDecoder)
         |> Pipe.required "uri" Decode.string
-        |> Pipe.required "url" Decode.string
+        |> Pipe.required "url" (Decode.nullable Decode.string)
         |> Pipe.required "visibility" Decode.string
 
 

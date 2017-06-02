@@ -3,14 +3,21 @@ module View.Common
         ( accountAvatar
         , accountAvatarLink
         , accountLink
+        , appLink
         , closeablePanelheading
         , icon
         , justifiedButtonGroup
         , loadMoreBtn
+        , confirmView
+        , formatDate
         )
 
+import Date
+import Date.Extra.Config.Config_en_au as DateEn
+import Date.Extra.Format as DateFormat
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Html.Events exposing (..)
 import Mastodon.Http exposing (Links)
 import Mastodon.Model exposing (..)
 import Types exposing (..)
@@ -29,7 +36,7 @@ accountLink external account =
             if external then
                 target "_blank"
             else
-                onClickWithPreventAndStop (LoadAccount account.id)
+                href <| "#account/" ++ (toString account.id)
     in
         a
             [ href account.url
@@ -45,7 +52,7 @@ accountAvatarLink external account =
             if external then
                 target "_blank"
             else
-                onClickWithPreventAndStop (LoadAccount account.id)
+                href <| "#account/" ++ (toString account.id)
 
         avatarClass =
             if external then
@@ -61,8 +68,23 @@ accountAvatarLink external account =
             [ accountAvatar avatarClass account ]
 
 
-closeablePanelheading : String -> String -> String -> Msg -> Html Msg
-closeablePanelheading context iconName label onClose =
+appLink : String -> Maybe Application -> Html Msg
+appLink classes app =
+    case app of
+        Nothing ->
+            text ""
+
+        Just { name, website } ->
+            case website of
+                Nothing ->
+                    span [ class classes ] [ text name ]
+
+                Just website ->
+                    a [ href website, target "_blank", class classes ] [ text name ]
+
+
+closeablePanelheading : String -> String -> String -> Html Msg
+closeablePanelheading context iconName label =
     div [ class "panel-heading" ]
         [ div [ class "row" ]
             [ a
@@ -70,7 +92,7 @@ closeablePanelheading context iconName label onClose =
                 [ div [ class "col-xs-9 heading" ] [ icon iconName, text label ] ]
             , div [ class "col-xs-3 text-right" ]
                 [ a
-                    [ href "", onClickWithPreventAndStop onClose ]
+                    [ href "", onClickWithPreventAndStop Back ]
                     [ icon "remove" ]
                 ]
             ]
@@ -105,3 +127,37 @@ loadMoreBtn { id, links, loading } =
 
             Nothing ->
                 text ""
+
+
+confirmView : Confirm -> Html Msg
+confirmView { message, onConfirm, onCancel } =
+    div []
+        [ div [ class "modal-backdrop" ] []
+        , div
+            [ class "modal fade in", style [ ( "display", "block" ) ], tabindex -1 ]
+            [ div
+                [ class "modal-dialog" ]
+                [ div
+                    [ class "modal-content" ]
+                    [ div [ class "modal-header" ] [ h4 [] [ text "Confirmation required" ] ]
+                    , div [ class "modal-body" ] [ p [] [ text message ] ]
+                    , div
+                        [ class "modal-footer" ]
+                        [ button
+                            [ type_ "button", class "btn btn-default", onClick (ConfirmCancelled onCancel) ]
+                            [ text "Cancel" ]
+                        , button
+                            [ type_ "button", class "btn btn-primary", onClick (Confirmed onConfirm) ]
+                            [ text "OK" ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+
+
+formatDate : String -> String
+formatDate dateString =
+    Date.fromString dateString
+        |> Result.withDefault (Date.fromTime 0)
+        |> DateFormat.format DateEn.config "%d/%m/%Y %H:%M"

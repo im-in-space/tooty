@@ -20,22 +20,34 @@ type alias CurrentUser =
 filterNotifications : NotificationFilter -> List NotificationAggregate -> List NotificationAggregate
 filterNotifications filter notifications =
     let
-        applyFilter { type_ } =
-            case filter of
-                NotificationAll ->
-                    True
+        applyFilter { type_, status } =
+            let
+                visibility =
+                    case status of
+                        Just status ->
+                            status.visibility
 
-                NotificationOnlyMentions ->
-                    type_ == "mention"
+                        Nothing ->
+                            ""
+            in
+                case filter of
+                    NotificationAll ->
+                        True
 
-                NotificationOnlyBoosts ->
-                    type_ == "reblog"
+                    NotificationOnlyMentions ->
+                        type_ == "mention" && visibility /= "direct"
 
-                NotificationOnlyFavourites ->
-                    type_ == "favourite"
+                    NotificationOnlyDirect ->
+                        type_ == "mention" && visibility == "direct"
 
-                NotificationOnlyFollows ->
-                    type_ == "follow"
+                    NotificationOnlyBoosts ->
+                        type_ == "reblog"
+
+                    NotificationOnlyFavourites ->
+                        type_ == "favourite"
+
+                    NotificationOnlyFollows ->
+                        type_ == "follow"
     in
         if filter == NotificationAll then
             notifications
@@ -43,17 +55,36 @@ filterNotifications filter notifications =
             List.filter applyFilter notifications
 
 
-notificationHeading : List Account -> String -> String -> Html Msg
-notificationHeading accounts str iconType =
-    div [ class "status-info" ]
-        [ div [ class "avatars" ] <| List.map (Common.accountAvatarLink False) accounts
-        , p [ class "status-info-text" ] <|
-            List.intersperse (text " ")
-                [ Common.icon iconType
-                , span [] <| List.intersperse (text ", ") (List.map (Common.accountLink False) accounts)
-                , text str
-                ]
-        ]
+notificationHeading : List AccountNotificationDate -> String -> String -> Html Msg
+notificationHeading accountsAndDate str iconType =
+    let
+        ( firstAccounts, finalStr ) =
+            case accountsAndDate of
+                [ a1 ] ->
+                    ( [ a1.account ], str )
+
+                [ a1, a2 ] ->
+                    ( [ a1.account, a2.account ], str )
+
+                [ a1, a2, a3 ] ->
+                    ( [ a1.account, a2.account, a3.account ], str )
+
+                a1 :: a2 :: a3 :: xs ->
+                    ( [ a1.account, a2.account, a3.account ], " and " ++ (toString <| List.length xs) ++ " others " ++ str )
+
+                _ ->
+                    ( [], "" )
+    in
+        div [ class "status-info" ]
+            [ div [ class "avatars" ] <|
+                List.map (Common.accountAvatarLink False) (List.map .account accountsAndDate)
+            , p [ class "status-info-text" ] <|
+                List.intersperse (text " ")
+                    [ Common.icon iconType
+                    , span [] <| List.intersperse (text ", ") (List.map (Common.accountLink False) firstAccounts)
+                    , text finalStr
+                    ]
+            ]
 
 
 notificationStatusView : ( String, CurrentUser, Status, NotificationAggregate ) -> Html Msg
@@ -69,28 +100,32 @@ notificationStatusView ( context, currentUser, status, { type_, accounts } ) =
             _ ->
                 text ""
         , Lazy.lazy2 statusView context status
-        , Lazy.lazy2 statusActionsView status currentUser
+        , Lazy.lazy3 statusActionsView status currentUser False
         ]
 
 
 notificationFollowView : CurrentUser -> NotificationAggregate -> Html Msg
 notificationFollowView currentUser { accounts } =
     let
-        profileView account =
+        profileView : AccountNotificationDate -> Html Msg
+        profileView { account, created_at } =
             div [ class "status follow-profile" ]
                 [ Common.accountAvatarLink False account
-                , div [ class "username" ] [ Common.accountLink False account ]
-                , p
-                    [ class "status-text"
-                    , onClick <| LoadAccount account.id
+                , div [ class "username" ]
+                    [ Common.accountLink False account
+                    , span [ class "btn-sm follow-profile-date" ]
+                        [ Common.icon "time", text <| Common.formatDate created_at ]
                     ]
-                  <|
-                    formatContent account.note []
+                , formatContent account.note []
+                    |> div
+                        [ class "status-text"
+                        , onClick <| Navigate ("#account/" ++ (toString account.id))
+                        ]
                 ]
     in
         div [ class "notification follow" ]
             [ notificationHeading accounts "started following you" "user"
-            , div [ class "" ] <| List.map profileView accounts
+            , div [ class "" ] <| List.map profileView (List.take 3 accounts)
             ]
 
 
@@ -121,9 +156,10 @@ notificationFilterView filter =
                 ]
                 [ Common.icon iconName ]
     in
-        Common.justifiedButtonGroup "notification-filters"
+        Common.justifiedButtonGroup "column-menu notification-filters"
             [ filterBtn "All notifications" "asterisk" NotificationAll
             , filterBtn "Mentions" "share-alt" NotificationOnlyMentions
+            , filterBtn "Direct" "envelope" NotificationOnlyDirect
             , filterBtn "Boosts" "retweet" NotificationOnlyBoosts
             , filterBtn "Favorites" "star" NotificationOnlyFavourites
             , filterBtn "Follows" "user" NotificationOnlyFollows

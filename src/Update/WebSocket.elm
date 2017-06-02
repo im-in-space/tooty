@@ -116,46 +116,64 @@ update msg model =
 
 isThreadMember : Thread -> Status -> Bool
 isThreadMember thread status =
-    case status.in_reply_to_id of
-        Nothing ->
-            False
+    case ( thread.status, thread.context ) of
+        ( Just threadStatus, Just context ) ->
+            case status.in_reply_to_id of
+                Nothing ->
+                    False
 
-        Just inReplyToId ->
-            let
-                threadStatusIds =
-                    List.concat
-                        [ [ thread.status.id ]
-                        , List.map .id thread.context.ancestors
-                        , List.map .id thread.context.descendants
-                        ]
-            in
-                List.member inReplyToId threadStatusIds
+                Just inReplyToId ->
+                    let
+                        threadStatusIds =
+                            List.concat
+                                [ [ threadStatus.id ]
+                                , List.map .id context.ancestors
+                                , List.map .id context.descendants
+                                ]
+                    in
+                        List.member inReplyToId threadStatusIds
+
+        _ ->
+            False
 
 
 appendToThreadDescendants : Thread -> Status -> Thread
 appendToThreadDescendants ({ context } as thread) status =
-    { thread
-        | context =
-            { context
-                | descendants = List.append thread.context.descendants [ status ]
+    case context of
+        Just context ->
+            { thread
+                | context =
+                    Just { context | descendants = List.append context.descendants [ status ] }
             }
-    }
+
+        _ ->
+            thread
 
 
 updateCurrentViewWithStatus : Status -> Model -> Model
-updateCurrentViewWithStatus status model =
+updateCurrentViewWithStatus status ({ accountInfo } as model) =
     case model.currentView of
-        ThreadView ({ context } as thread) ->
+        ThreadView thread ->
             if isThreadMember thread status then
                 { model | currentView = ThreadView (appendToThreadDescendants thread status) }
             else
                 model
 
-        AccountView account ->
-            if Mastodon.Helper.sameAccount account status.account then
-                { model | accountTimeline = Update.Timeline.prepend status model.accountTimeline }
-            else
-                model
+        AccountView _ ->
+            case model.accountInfo.account of
+                Just account ->
+                    if Mastodon.Helper.sameAccount account status.account then
+                        { model
+                            | accountInfo =
+                                { accountInfo
+                                    | timeline = Update.Timeline.prepend status accountInfo.timeline
+                                }
+                        }
+                    else
+                        model
+
+                Nothing ->
+                    model
 
         _ ->
             model

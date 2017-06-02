@@ -3,10 +3,14 @@ module Update.Main exposing (update)
 import Command
 import List.Extra exposing (removeAt)
 import Mastodon.Model exposing (..)
+import Navigation
 import Types exposing (..)
+import Update.AccountInfo
 import Update.Draft
 import Update.Error
 import Update.Mastodon
+import Update.Route
+import Update.Search
 import Update.Timeline
 import Update.Viewer
 import Update.WebSocket
@@ -35,6 +39,15 @@ update msg model =
         NoOp ->
             model ! []
 
+        UrlChange location ->
+            Update.Route.update { model | location = location }
+
+        Back ->
+            model ! [ Navigation.back 1 ]
+
+        Navigate href ->
+            model ! [ Navigation.newUrl href ]
+
         Tick newTime ->
             { model
                 | currentTime = newTime
@@ -45,6 +58,15 @@ update msg model =
         ClearError index ->
             { model | errors = removeAt index model.errors } ! []
 
+        AskConfirm message onClick onCancel ->
+            { model | confirm = Just <| Confirm message onClick onCancel } ! []
+
+        ConfirmCancelled onCancel ->
+            update onCancel { model | confirm = Nothing }
+
+        Confirmed onConfirm ->
+            update onConfirm { model | confirm = Nothing }
+
         SwitchClient client ->
             let
                 newClients =
@@ -52,10 +74,35 @@ update msg model =
             in
                 { model
                     | clients = newClients
-                    , currentView = Update.Timeline.preferred model
+                    , homeTimeline = Update.Timeline.empty "home-timeline"
+                    , localTimeline = Update.Timeline.empty "local-timeline"
+                    , globalTimeline = Update.Timeline.empty "global-timeline"
+                    , favoriteTimeline = Update.Timeline.empty "favorite-timeline"
+                    , accountInfo = Update.AccountInfo.empty
+                    , mutes = Update.Timeline.empty "mutes-timeline"
+                    , blocks = Update.Timeline.empty "blocks-timeline"
+                    , notifications = Update.Timeline.empty "notifications"
+                    , currentView = AccountSelectorView
                 }
                     ! [ Command.loadUserAccount <| Just client
                       , Command.loadTimelines <| Just client
+                      ]
+
+        LogoutClient client ->
+            let
+                newClients =
+                    List.filter (\c -> c.token /= client.token) model.clients
+
+                newClient =
+                    List.head newClients
+            in
+                { model
+                    | clients = newClients
+                    , currentView = LocalTimelineView
+                }
+                    ! [ Command.saveClients newClients
+                      , Command.loadUserAccount newClient
+                      , Command.loadTimelines newClient
                       ]
 
         MastodonEvent msg ->
@@ -64,6 +111,9 @@ update msg model =
                     Update.Mastodon.update msg model
             in
                 newModel ! [ commands ]
+
+        SearchEvent msg ->
+            Update.Search.update msg model
 
         WebSocketEvent msg ->
             let
@@ -75,45 +125,49 @@ update msg model =
         ServerChange server ->
             { model | server = server } ! []
 
-        UrlChange location ->
-            model ! []
-
         Register ->
             model ! [ Command.registerApp model ]
 
         OpenThread status ->
-            model ! [ Command.loadThread (List.head model.clients) status ]
+            { model | currentView = ThreadView (Thread Nothing Nothing) }
+                ! [ Navigation.newUrl <| "#thread/" ++ (toString status.id) ]
 
-        OpenAccountSelector ->
-            { model | currentView = AccountSelectorView, server = "" } ! []
+        FollowAccount account ->
+            model ! [ Command.follow (List.head model.clients) account ]
 
-        CloseThread ->
-            { model | currentView = Update.Timeline.preferred model } ! []
+        UnfollowAccount account ->
+            model ! [ Command.unfollow (List.head model.clients) account ]
 
-        FollowAccount id ->
-            model ! [ Command.follow (List.head model.clients) id ]
+        Mute account ->
+            model ! [ Command.mute (List.head model.clients) account ]
 
-        UnfollowAccount id ->
-            model ! [ Command.unfollow (List.head model.clients) id ]
+        Unmute account ->
+            model ! [ Command.unmute (List.head model.clients) account ]
+
+        Block account ->
+            model ! [ Command.block (List.head model.clients) account ]
+
+        Unblock account ->
+            model ! [ Command.unblock (List.head model.clients) account ]
 
         DeleteStatus id ->
             model ! [ Command.deleteStatus (List.head model.clients) id ]
 
-        ReblogStatus id ->
-            Update.Timeline.processReblog id True model
-                ! [ Command.reblogStatus (List.head model.clients) id ]
+        ReblogStatus status ->
+            Update.Timeline.processReblog status True model
+                ! [ Command.reblogStatus (List.head model.clients) status.id ]
 
-        UnreblogStatus id ->
-            Update.Timeline.processReblog id False model
-                ! [ Command.unreblogStatus (List.head model.clients) id ]
+        UnreblogStatus status ->
+            Update.Timeline.processReblog status False model
+                ! [ Command.unreblogStatus (List.head model.clients) status.id ]
 
-        AddFavorite id ->
-            Update.Timeline.processFavourite id True model
-                ! [ Command.favouriteStatus (List.head model.clients) id ]
+        AddFavorite status ->
+            Update.Timeline.processFavourite status True model
+                ! [ Command.favouriteStatus (List.head model.clients) status.id ]
 
-        RemoveFavorite id ->
-            Update.Timeline.processFavourite id False model
-                ! [ Command.unfavouriteStatus (List.head model.clients) id ]
+        RemoveFavorite status ->
+            Update.Timeline.processFavourite status False model
+                ! [ Command.unfavouriteStatus (List.head model.clients) status.id ]
 
         DraftEvent draftMsg ->
             case model.currentUser of
@@ -131,57 +185,14 @@ update msg model =
                 { model | viewer = viewer } ! [ commands ]
 
         SubmitDraft ->
-            model ! [ Command.postStatus (List.head model.clients) <| toStatusRequestBody model.draft ]
-
-        LoadAccount accountId ->
-            { model
-                | accountTimeline = Update.Timeline.empty "account-timeline"
-                , accountFollowers = Update.Timeline.empty "account-followers"
-                , accountFollowing = Update.Timeline.empty "account-following"
-                , accountRelationships = []
-                , accountRelationship = Nothing
-            }
-                ! [ Command.loadAccount (List.head model.clients) accountId ]
+            model
+                ! [ Command.postStatus (List.head model.clients) <|
+                        toStatusRequestBody model.draft
+                  ]
 
         TimelineLoadNext id next ->
             Update.Timeline.markAsLoading True id model
-                ! [ Command.loadNextTimeline (List.head model.clients) model.currentView id next ]
-
-        ViewAccountFollowers account ->
-            { model
-                | currentView = AccountFollowersView account model.accountFollowers
-                , accountRelationships = []
-            }
-                ! [ Command.loadAccountFollowers (List.head model.clients) account.id Nothing ]
-
-        ViewAccountFollowing account ->
-            { model
-                | currentView = AccountFollowingView account model.accountFollowing
-                , accountRelationships = []
-            }
-                ! [ Command.loadAccountFollowing (List.head model.clients) account.id Nothing ]
-
-        ViewAccountStatuses account ->
-            { model | currentView = AccountView account } ! []
-
-        UseGlobalTimeline flag ->
-            let
-                newModel =
-                    { model | useGlobalTimeline = flag }
-            in
-                { newModel | currentView = Update.Timeline.preferred newModel } ! []
-
-        CloseAccount ->
-            { model
-                | currentView = Update.Timeline.preferred model
-                , accountTimeline = Update.Timeline.empty "account-timeline"
-                , accountFollowing = Update.Timeline.empty "account-following"
-                , accountFollowers = Update.Timeline.empty "account-followers"
-            }
-                ! []
-
-        CloseAccountSelector ->
-            { model | currentView = Update.Timeline.preferred model } ! []
+                ! [ Command.loadNextTimeline model id next ]
 
         FilterNotifications filter ->
             { model | notificationFilter = filter } ! []

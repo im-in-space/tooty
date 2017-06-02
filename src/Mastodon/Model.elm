@@ -3,6 +3,8 @@ module Mastodon.Model
         ( AccessTokenResult
         , AppRegistration
         , Account
+        , AccountNotificationDate
+        , Application
         , Attachment
         , Client
         , Context
@@ -13,6 +15,7 @@ module Mastodon.Model
         , Reblog(..)
         , Relationship
         , Tag
+        , SearchResults
         , Status
         , StatusRequestBody
         )
@@ -90,6 +93,12 @@ type alias Account =
     }
 
 
+type alias Application =
+    { name : String
+    , website : Maybe String
+    }
+
+
 type alias Attachment =
     -- type_: -- "image", "video", "gifv"
     { id : Int
@@ -138,11 +147,17 @@ type alias Notification =
     }
 
 
+type alias AccountNotificationDate =
+    { account : Account
+    , created_at : String
+    }
+
+
 type alias NotificationAggregate =
     { id : Int
     , type_ : String
     , status : Maybe Status
-    , accounts : List Account
+    , accounts : List AccountNotificationDate
     , created_at : String
     }
 
@@ -161,8 +176,16 @@ type alias Relationship =
     }
 
 
+type alias SearchResults =
+    { accounts : List Account
+    , statuses : List Status
+    , hashtags : List String
+    }
+
+
 type alias Status =
     { account : Account
+    , application : Maybe Application
     , content : String
     , created_at : String
     , favourited : Maybe Bool
@@ -179,7 +202,7 @@ type alias Status =
     , spoiler_text : String
     , tags : List Tag
     , uri : String
-    , url : String
+    , url : Maybe String
     , visibility : String
     }
 

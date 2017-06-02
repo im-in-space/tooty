@@ -42,28 +42,43 @@ type alias MastodonResult a =
 
 type MastodonMsg
     = AccessToken (MastodonResult AccessTokenResult)
-    | AccountFollowed (MastodonResult Relationship)
+    | AccountFollowed Account (MastodonResult Relationship)
     | AccountFollowers Bool (MastodonResult (List Account))
     | AccountFollowing Bool (MastodonResult (List Account))
+    | AccountBlocked Account (MastodonResult Relationship)
+    | AccountMuted Account (MastodonResult Relationship)
     | AccountReceived (MastodonResult Account)
     | AccountRelationship (MastodonResult (List Relationship))
     | AccountRelationships (MastodonResult (List Relationship))
     | AccountTimeline Bool (MastodonResult (List Status))
-    | AccountUnfollowed (MastodonResult Relationship)
+    | AccountUnfollowed Account (MastodonResult Relationship)
+    | AccountUnblocked Account (MastodonResult Relationship)
+    | AccountUnmuted Account (MastodonResult Relationship)
     | AppRegistered (MastodonResult AppRegistration)
     | AutoSearch (MastodonResult (List Account))
-    | ContextLoaded Status (MastodonResult Context)
+    | Blocks Bool (MastodonResult (List Account))
     | CurrentUser (MastodonResult Account)
     | FavoriteAdded (MastodonResult Status)
     | FavoriteRemoved (MastodonResult Status)
+    | FavoriteTimeline Bool (MastodonResult (List Status))
     | GlobalTimeline Bool (MastodonResult (List Status))
+    | HashtagTimeline Bool (MastodonResult (List Status))
+    | HomeTimeline Bool (MastodonResult (List Status))
     | LocalTimeline Bool (MastodonResult (List Status))
+    | Mutes Bool (MastodonResult (List Account))
     | Notifications Bool (MastodonResult (List Notification))
     | Reblogged (MastodonResult Status)
+    | SearchResultsReceived (MastodonResult SearchResults)
     | StatusDeleted (MastodonResult Int)
     | StatusPosted (MastodonResult Status)
+    | ThreadStatusLoaded Int (MastodonResult Status)
+    | ThreadContextLoaded Int (MastodonResult Context)
     | Unreblogged (MastodonResult Status)
-    | HomeTimeline Bool (MastodonResult (List Status))
+
+
+type SearchMsg
+    = SubmitSearch
+    | UpdateSearch String
 
 
 type WebSocketMsg
@@ -73,49 +88,77 @@ type WebSocketMsg
 
 
 type Msg
-    = AddFavorite Int
+    = AddFavorite Status
+    | AskConfirm String Msg Msg
+    | Back
+    | Block Account
     | ClearError Int
-    | CloseAccount
-    | CloseAccountSelector
-    | CloseThread
+    | ConfirmCancelled Msg
+    | Confirmed Msg
     | DeleteStatus Int
     | DraftEvent DraftMsg
     | FilterNotifications NotificationFilter
-    | FollowAccount Int
-    | LoadAccount Int
+    | FollowAccount Account
+    | LogoutClient Client
     | TimelineLoadNext String String
     | MastodonEvent MastodonMsg
+    | Mute Account
+    | Navigate String
     | NoOp
     | OpenThread Status
-    | OpenAccountSelector
-    | ReblogStatus Int
+    | ReblogStatus Status
     | Register
-    | RemoveFavorite Int
+    | RemoveFavorite Status
     | ScrollColumn ScrollDirection String
+    | SearchEvent SearchMsg
     | ServerChange String
     | SubmitDraft
     | SwitchClient Client
     | Tick Time
-    | UnfollowAccount Int
+    | UnfollowAccount Account
+    | Unblock Account
+    | Unmute Account
+    | UnreblogStatus Status
     | UrlChange Navigation.Location
-    | UseGlobalTimeline Bool
-    | UnreblogStatus Int
-    | ViewAccountFollowing Account
-    | ViewAccountFollowers Account
-    | ViewAccountStatuses Account
     | ViewerEvent ViewerMsg
     | WebSocketEvent WebSocketMsg
 
 
+type alias AccountInfo =
+    { account : Maybe Account
+    , timeline : Timeline Status
+    , followers : Timeline Account
+    , following : Timeline Account
+    , relationships : List Relationship
+    , relationship : Maybe Relationship
+    }
+
+
+type alias Confirm =
+    { message : String
+    , onConfirm : Msg
+    , onCancel : Msg
+    }
+
+
 type CurrentView
     = -- Basically, what we should be displaying in the fourth column
-      AccountFollowersView Account (Timeline Account)
-    | AccountFollowingView Account (Timeline Account)
-    | AccountView Account
+      AccountView CurrentAccountView
     | AccountSelectorView
+    | BlocksView
+    | FavoriteTimelineView
     | GlobalTimelineView
+    | HashtagView String
     | LocalTimelineView
+    | MutesView
+    | SearchView
     | ThreadView Thread
+
+
+type CurrentAccountView
+    = AccountStatusesView
+    | AccountFollowersView
+    | AccountFollowingView
 
 
 type alias Draft =
@@ -142,6 +185,7 @@ type alias Draft =
 type NotificationFilter
     = NotificationAll
     | NotificationOnlyMentions
+    | NotificationOnlyDirect
     | NotificationOnlyBoosts
     | NotificationOnlyFavourites
     | NotificationOnlyFollows
@@ -152,9 +196,15 @@ type ScrollDirection
     | ScrollBottom
 
 
+type alias Search =
+    { term : String
+    , results : Maybe SearchResults
+    }
+
+
 type alias Thread =
-    { status : Status
-    , context : Context
+    { status : Maybe Status
+    , context : Maybe Context
     }
 
 
@@ -186,20 +236,21 @@ type alias Model =
     , homeTimeline : Timeline Status
     , localTimeline : Timeline Status
     , globalTimeline : Timeline Status
-    , accountTimeline : Timeline Status
-    , accountFollowers : Timeline Account
-    , accountFollowing : Timeline Account
-    , accountRelationships : List Relationship
-    , accountRelationship : Maybe Relationship
+    , favoriteTimeline : Timeline Status
+    , hashtagTimeline : Timeline Status
+    , mutes : Timeline Account
+    , blocks : Timeline Account
+    , accountInfo : AccountInfo
     , notifications : Timeline NotificationAggregate
     , draft : Draft
     , errors : List ErrorNotification
     , location : Navigation.Location
-    , useGlobalTimeline : Bool
     , viewer : Maybe Viewer
     , currentUser : Maybe Account
     , currentView : CurrentView
     , notificationFilter : NotificationFilter
+    , confirm : Maybe Confirm
+    , search : Search
     }
 
 

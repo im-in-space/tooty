@@ -5,9 +5,6 @@ module View.Status
         , statusEntryView
         )
 
-import Date
-import Date.Extra.Config.Config_en_au as DateEn
-import Date.Extra.Format as DateFormat
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Keyed as Keyed
@@ -84,8 +81,8 @@ attachmentListView context { media_attachments, sensitive } =
                     List.map (keyedEntry attachments) attachments
 
 
-statusActionsView : Status -> CurrentUser -> Html Msg
-statusActionsView status currentUser =
+statusActionsView : Status -> CurrentUser -> Bool -> Html Msg
+statusActionsView status currentUser showApp =
     let
         sourceStatus =
             Mastodon.Helper.extractReblog status
@@ -96,31 +93,23 @@ statusActionsView status currentUser =
         ( reblogClasses, reblogEvent ) =
             case status.reblogged of
                 Just True ->
-                    ( baseBtnClasses ++ " reblogged", UnreblogStatus sourceStatus.id )
+                    ( baseBtnClasses ++ " reblogged", UnreblogStatus sourceStatus )
 
                 _ ->
-                    ( baseBtnClasses, ReblogStatus sourceStatus.id )
+                    ( baseBtnClasses, ReblogStatus sourceStatus )
 
         ( favClasses, favEvent ) =
             case status.favourited of
                 Just True ->
-                    ( baseBtnClasses ++ " favourited", RemoveFavorite sourceStatus.id )
+                    ( baseBtnClasses ++ " favourited", RemoveFavorite sourceStatus )
 
                 _ ->
-                    ( baseBtnClasses, AddFavorite sourceStatus.id )
-
-        statusDate =
-            Date.fromString status.created_at
-                |> Result.withDefault (Date.fromTime 0)
-
-        formatDate =
-            text <| DateFormat.format DateEn.config "%m/%d/%Y %H:%M" statusDate
+                    ( baseBtnClasses, AddFavorite sourceStatus )
     in
         div [ class "btn-group actions" ]
             [ a
                 [ class baseBtnClasses
-                , onClickWithPreventAndStop <|
-                    DraftEvent (UpdateReplyTo status)
+                , onClickWithPreventAndStop <| DraftEvent (UpdateReplyTo status)
                 ]
                 [ Common.icon "share-alt" ]
             , if status.visibility == "private" then
@@ -131,27 +120,28 @@ statusActionsView status currentUser =
                     [ span [ title "Direct" ] [ Common.icon "envelope" ] ]
               else
                 a
-                    [ class reblogClasses
-                    , onClickWithPreventAndStop reblogEvent
-                    ]
+                    [ class reblogClasses, onClickWithPreventAndStop reblogEvent ]
                     [ Common.icon "retweet", text (toString sourceStatus.reblogs_count) ]
             , a
-                [ class favClasses
-                , onClickWithPreventAndStop favEvent
-                ]
+                [ class favClasses, onClickWithPreventAndStop favEvent ]
                 [ Common.icon "star", text (toString sourceStatus.favourites_count) ]
             , if Mastodon.Helper.sameAccount sourceStatus.account currentUser then
                 a
                     [ class <| baseBtnClasses ++ " btn-delete"
                     , href ""
-                    , onClickWithPreventAndStop <| DeleteStatus sourceStatus.id
+                    , onClickWithPreventAndStop <|
+                        AskConfirm "Are you sure you want to delete this toot?" (DeleteStatus sourceStatus.id) NoOp
                     ]
                     [ Common.icon "trash" ]
               else
                 text ""
             , a
-                [ class baseBtnClasses, href status.url, target "_blank" ]
-                [ Common.icon "time", formatDate ]
+                [ class baseBtnClasses, href (Maybe.withDefault "#" status.url), target "_blank" ]
+                [ Common.icon "time", text <| Common.formatDate status.created_at ]
+            , if showApp then
+                Common.appLink (baseBtnClasses ++ " applink") status.application
+              else
+                text ""
             ]
 
 
@@ -159,8 +149,8 @@ statusContentView : String -> Status -> Html Msg
 statusContentView context status =
     case status.spoiler_text of
         "" ->
-            div [ class "status-text", onClickWithStop <| OpenThread status ]
-                [ div [] <| formatContent status.content status.mentions
+            div [ class "status-text" ]
+                [ div [ onClickWithStop <| OpenThread status ] <| formatContent status.content status.mentions
                 , attachmentListView context status
                 ]
 
@@ -205,7 +195,7 @@ statusEntryView context className currentUser status =
     in
         li liAttributes
             [ Lazy.lazy2 statusView context status
-            , Lazy.lazy2 statusActionsView status currentUser
+            , Lazy.lazy3 statusActionsView status currentUser (className == "thread-target")
             ]
 
 
@@ -213,9 +203,7 @@ statusView : String -> Status -> Html Msg
 statusView context ({ account, content, media_attachments, reblog, mentions } as status) =
     let
         accountLinkAttributes =
-            [ href account.url
-            , onClickWithPreventAndStop (LoadAccount account.id)
-            ]
+            [ href <| "#account/" ++ (toString account.id) ]
     in
         case reblog of
             Just (Reblog reblog) ->
