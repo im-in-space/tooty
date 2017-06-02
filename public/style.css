@@ -51,13 +51,8 @@ body {
   margin-bottom: 0;
 }
 
-.column .panel.options {
-    max-height: 115px !important;
-    min-height: 115px !important;
-}
-
-.column .panel.options .panel-body {
-    padding: 0 15px;
+.column .panel.draft, .column .panel.options {
+  min-height: 0;
 }
 
 .panel-default .panel-heading {
