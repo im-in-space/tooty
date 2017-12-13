@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>Tooty</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="//bootswatch.com/slate/bootstrap.min.css" media="all" rel="stylesheet" />
+    <link href="bootstrap/css/bootstrap.min.css" media="all" rel="stylesheet" />
     <link href="style.css" media="all" rel="stylesheet" />
     <link rel="icon" type="image/png" sizes="192x192"  href="images/favicon-192x192.png">
     <link rel="icon" type="image/png" sizes="96x96" href="images/favicon-96x96.png">
@@ -17,20 +17,8 @@
   <body>
     <script src="app.js"></script>
     <script>
-    // Note: this is a transitional upgrade to new client storage format, which
-    // is now now a list of clients, which all require an "account" property set.
-    const oldClient = JSON.parse(localStorage.getItem("tooty.client"));
-    const defaultClients = oldClient ? [oldClient] : [];
-    const clients = (JSON.parse(localStorage.getItem("tooty.clients")) || defaultClients)
-      .map(client => {
-        if (!client.hasOwnProperty("account")) {
-          client.account = null;
-        }
-        return client;
-      });
-
     const app = Elm.Main.fullscreen({
-      clients: clients,
+      clients: localStorage.getItem("tooty.clients") || "[]",
       registration: JSON.parse(localStorage.getItem("tooty.registration"))
     });
 
@@ -76,6 +64,26 @@
         .catch(err => app.ports.uploadError.send(err.message))
         .then(response => response.text())
         .then(app.ports.uploadSuccess.send);
+    });
+
+    function notify(data) {
+      const notif = new Notification(data.title, {
+        icon: data.icon,
+        body: data.body,
+      });
+      notif.onclick = () => location.hash = data.clickUrl;
+    }
+
+    app.ports.notify.subscribe(data => {
+      if (Notification.permission === "granted") {
+        notify(data);
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission(permission => {
+          if (permission === "granted") {
+            notify(data);
+          }
+        });
+      }
     });
     </script>
   </body>
