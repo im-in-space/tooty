@@ -9,7 +9,7 @@ import Time exposing (Time)
 
 
 type alias Flags =
-    { clients : List Client
+    { clients : String
     , registration : Maybe AppRegistration
     }
 
@@ -17,7 +17,7 @@ type alias Flags =
 type DraftMsg
     = ClearDraft
     | CloseAutocomplete
-    | RemoveMedia Int
+    | RemoveMedia String
     | ResetAutocomplete Bool
     | SelectAccount String
     | SetAutoState Autocomplete.Msg
@@ -72,10 +72,10 @@ type MastodonMsg
     | Notifications Bool (MastodonResult (List Notification))
     | Reblogged (MastodonResult Status)
     | SearchResultsReceived (MastodonResult SearchResults)
-    | StatusDeleted (MastodonResult Int)
+    | StatusDeleted (MastodonResult StatusId)
     | StatusPosted (MastodonResult Status)
-    | ThreadStatusLoaded Int (MastodonResult Status)
-    | ThreadContextLoaded Int (MastodonResult Context)
+    | ThreadStatusLoaded StatusId (MastodonResult Status)
+    | ThreadContextLoaded StatusId (MastodonResult Context)
     | Unreblogged (MastodonResult Status)
 
 
@@ -90,6 +90,11 @@ type WebSocketMsg
     | NewWebsocketUserMessage String
 
 
+type KeyEvent
+    = KeyUp
+    | KeyDown
+
+
 type Msg
     = AddFavorite Status
     | AskConfirm String Msg Msg
@@ -98,11 +103,11 @@ type Msg
     | ClearError Int
     | ConfirmCancelled Msg
     | Confirmed Msg
-    | DeleteStatus Int
+    | DeleteStatus StatusId
     | DraftEvent DraftMsg
     | FilterNotifications NotificationFilter
     | FollowAccount Account
-    | KeyMsg Keyboard.KeyCode
+    | KeyMsg KeyEvent Keyboard.KeyCode
     | LogoutClient Client
     | TimelineLoadNext String String
     | MastodonEvent MastodonMsg
@@ -255,6 +260,7 @@ type alias Model =
     , notificationFilter : NotificationFilter
     , confirm : Maybe Confirm
     , search : Search
+    , ctrlPressed : Bool
     }
 
 
